@@ -18,6 +18,9 @@
       "resync": true
     }
   },
+  "dynamic_keymap": {
+    "layer_count": 4
+  },
   "layouts": {
     "LAYOUT_ext_ansi": {
       "layout": [

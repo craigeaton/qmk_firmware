@@ -37,11 +37,12 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <stdbool.h>
-#include <util/delay.h>
+// #include <util/delay.h>
 #include <avr/io.h>
-#include <avr/interrupt.h>
+// #include <avr/interrupt.h>
 #include "adb.h"
 #include "print.h"
+#include <wait.h>
 
 // GCC doesn't inline functions normally
 #define data_lo() (ADB_DDR |= (1 << ADB_DATA_BIT))
@@ -91,7 +92,7 @@ uint16_t adb_host_mouse_recv(void) { return adb_host_talk(ADB_ADDR_MOUSE, ADB_RE
 uint8_t adb_host_talk_buf(uint8_t addr, uint8_t reg, uint8_t *buf, uint8_t len) {
     for (int8_t i = 0; i < len; i++) buf[i] = 0;
 
-    cli();
+    adb_irq_disable();
     attention();
     send_byte((addr << 4) | ADB_CMD_TALK | reg);
     place_bit0();  // Stopbit(0)
@@ -141,23 +142,23 @@ uint8_t adb_host_talk_buf(uint8_t addr, uint8_t reg, uint8_t *buf, uint8_t len) 
     // http://ww1.microchip.com/downloads/en/AppNotes/00591b.pdf
     if (!wait_data_hi(500)) {  // Service Request(310us Adjustable Keyboard): just ignored
         xprintf("R");
-        sei();
+        adb_irq_enable();
         return 0;
     }
     if (!wait_data_lo(500)) {  // Tlt/Stop to Start(140-260us)
-        sei();
+        adb_irq_enable();
         return 0;  // No data from device(not error);
     }
 
     // start bit(1)
     if (!wait_data_hi(40)) {
         xprintf("S");
-        sei();
+        adb_irq_enable();
         return 0;
     }
     if (!wait_data_lo(100)) {
         xprintf("s");
-        sei();
+        adb_irq_enable();
         return 0;
     }
 
@@ -187,7 +188,7 @@ uint8_t adb_host_talk_buf(uint8_t addr, uint8_t reg, uint8_t *buf, uint8_t len) 
     } while (++n);
 
 error:
-    sei();
+    adb_irq_enable();
     return n / 8;
 }
 
@@ -200,19 +201,19 @@ uint16_t adb_host_talk(uint8_t addr, uint8_t reg) {
 }
 
 void adb_host_listen_buf(uint8_t addr, uint8_t reg, uint8_t *buf, uint8_t len) {
-    cli();
+    adb_irq_disable();
     attention();
     send_byte((addr << 4) | ADB_CMD_LISTEN | reg);
     place_bit0();  // Stopbit(0)
     // TODO: Service Request
-    _delay_us(200);  // Tlt/Stop to Start
+    wait_us(200);  // Tlt/Stop to Start
     place_bit1();    // Startbit(1)
     for (int8_t i = 0; i < len; i++) {
         send_byte(buf[i]);
         // xprintf("%02X ", buf[i]);
     }
     place_bit0();  // Stopbit(0);
-    sei();
+    adb_irq_enable();
 }
 
 void adb_host_listen(uint8_t addr, uint8_t reg, uint8_t data_h, uint8_t data_l) {
@@ -221,12 +222,12 @@ void adb_host_listen(uint8_t addr, uint8_t reg, uint8_t data_h, uint8_t data_l) 
 }
 
 void adb_host_flush(uint8_t addr) {
-    cli();
+    adb_irq_disable();
     attention();
     send_byte((addr << 4) | ADB_CMD_FLUSH);
     place_bit0();    // Stopbit(0)
-    _delay_us(200);  // Tlt/Stop to Start
-    sei();
+    wait_us(200);  // Tlt/Stop to Start
+    adb_irq_enable();
 }
 
 // send state of LEDs
@@ -255,22 +256,22 @@ static inline bool psw_in(void) {
 
 static inline void attention(void) {
     data_lo();
-    _delay_us(800 - 35);  // bit1 holds lo for 35 more
+    wait_us(800 - 35);  // bit1 holds lo for 35 more
     place_bit1();
 }
 
 static inline void place_bit0(void) {
     data_lo();
-    _delay_us(65);
+    wait_us(65);
     data_hi();
-    _delay_us(35);
+    wait_us(35);
 }
 
 static inline void place_bit1(void) {
     data_lo();
-    _delay_us(35);
+    wait_us(35);
     data_hi();
-    _delay_us(65);
+    wait_us(65);
 }
 
 static inline void send_byte(uint8_t data) {
@@ -287,7 +288,7 @@ static inline void send_byte(uint8_t data) {
 static inline uint16_t wait_data_lo(uint16_t us) {
     do {
         if (!data_in()) break;
-        _delay_us(1 - (6 * 1000000.0 / F_CPU));
+        wait_us(1 - (6 * 1000000.0 / F_CPU));
     } while (--us);
     return us;
 }
@@ -295,7 +296,7 @@ static inline uint16_t wait_data_lo(uint16_t us) {
 static inline uint16_t wait_data_hi(uint16_t us) {
     do {
         if (data_in()) break;
-        _delay_us(1 - (6 * 1000000.0 / F_CPU));
+        wait_us(1 - (6 * 1000000.0 / F_CPU));
     } while (--us);
     return us;
 }

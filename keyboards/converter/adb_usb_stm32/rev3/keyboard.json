@@ -1,0 +1,4 @@
+{
+    "processor": "STM32F401",
+    "bootloader": "stm32-dfu"
+}

@@ -19,8 +19,8 @@ Ported to QMK by Peter Roe <pete@13bit.me>
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <wait.h>
 #include <avr/io.h>
-#include <util/delay.h>
 #include "print.h"
 #include "util.h"
 #include "debug.h"
@@ -65,7 +65,7 @@ void matrix_init(void)
     adb_host_init();
 
     // wait for keyboard to boot up and receive command
-    _delay_ms(2000);
+    wait_ms(2000);
 
     // initialize matrix state: all keys off
     for (uint8_t i=0; i < MATRIX_ROWS; i++) matrix[i] = 0x00;
