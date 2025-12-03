@@ -54,7 +54,6 @@ void matrix_scan_kb(void) {
 
 __attribute__ ((weak))
 void matrix_init_user(void) {
-    gpio_set_pin_output_open_drain(ADB_PIN);
 }
 
 __attribute__ ((weak))

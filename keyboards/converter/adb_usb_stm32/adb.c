@@ -56,10 +56,28 @@ static inline void     attention(void);
 static inline void     place_bit0(void);
 static inline void     place_bit1(void);
 static inline void     send_byte(uint8_t data);
-static inline uint16_t wait_data_lo(uint16_t us);
-static inline uint16_t wait_data_hi(uint16_t us);
+
+static inline uint32_t wait_data(uint32_t us, int datval);
+
+#define wait_data_lo(us) wait_data(us, 0)
+#define wait_data_hi(us) wait_data(us, 1)
+
+// void dwt_wait(uint32_t delay) {
+//     uint32_t timer_start = DWT->CYCCNT;
+//     while ((DWT->CYCCNT - timer_start) <= delay);
+// }
 
 void adb_host_init(void) {
+    // // Flash the board blue LED
+    // gpio_set_pin_output(C13);
+    // for (int n = 0; n < 10; n++) {
+    //     gpio_write_pin_low(C13);
+    //     dwt_wait(CPU_CLOCK);
+    //     gpio_write_pin_high(C13);
+    //     dwt_wait(CPU_CLOCK);
+    // }
+    
+    gpio_set_pin_output_open_drain(ADB_PIN);
     data_lo();
     data_hi();
 #ifdef ADB_PSW_BIT
@@ -280,23 +298,26 @@ static inline void send_byte(uint8_t data) {
     }
 }
 
-// These are carefully coded to take 6 cycles of overhead.
-// inline asm approach became too convoluted
-// FIXME : STM32 almost certainly has a better way to do this with a hardware timer
-static inline uint16_t wait_data_lo(uint16_t us) {
-    do {
-        if (!data_in()) break;
-        wait_us(1);
-    } while (--us);
-    return us;
-}
+// Use DWT->CYCCNT as time reference which has a 100MHz tick rate
+static inline uint32_t wait_data(uint32_t us, int datval) {
+    // Convert from uS to clock cycles
+    uint32_t delay_clks = us * (CPU_CLOCK/1000000);
+    uint32_t timer_start = DWT->CYCCNT;
+    uint32_t timer_current;
+    
+    // Wait until specified time has elapsed or "datval" is observed on gpio
+    while (1) {
+        timer_current = DWT->CYCCNT;
+        if ((timer_current - timer_start) >= delay_clks)
+            break;
 
-static inline uint16_t wait_data_hi(uint16_t us) {
-    do {
-        if (data_in()) break;
-        wait_us(1);
-    } while (--us);
-    return us;
+        if (data_in() == datval)
+            break;
+    }
+
+    // Convert measured delay to us
+    uint32_t delay_measured_us = (timer_current - timer_start) * 1000000 / CPU_CLOCK;
+    return delay_measured_us;
 }
 
 /*
