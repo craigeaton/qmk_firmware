@@ -37,17 +37,14 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <stdbool.h>
-// #include <util/delay.h>
-#include <avr/io.h>
-// #include <avr/interrupt.h>
+#include <gpio.h>
 #include "adb.h"
 #include "print.h"
 #include <wait.h>
 
-// GCC doesn't inline functions normally
-#define data_lo() (ADB_DDR |= (1 << ADB_DATA_BIT))
-#define data_hi() (ADB_DDR &= ~(1 << ADB_DATA_BIT))
-#define data_in() (ADB_PIN & (1 << ADB_DATA_BIT))
+#define data_lo()   gpio_write_pin_low(ADB_PIN)
+#define data_hi()   gpio_write_pin_high(ADB_PIN)
+#define data_in()   gpio_read_pin(ADB_PIN)
 
 #ifdef ADB_PSW_BIT
 static inline void psw_lo(void);
@@ -63,7 +60,7 @@ static inline uint16_t wait_data_lo(uint16_t us);
 static inline uint16_t wait_data_hi(uint16_t us);
 
 void adb_host_init(void) {
-    ADB_PORT &= ~(1 << ADB_DATA_BIT);
+    data_lo();
     data_hi();
 #ifdef ADB_PSW_BIT
     psw_hi();
@@ -285,10 +282,11 @@ static inline void send_byte(uint8_t data) {
 
 // These are carefully coded to take 6 cycles of overhead.
 // inline asm approach became too convoluted
+// FIXME : STM32 almost certainly has a better way to do this with a hardware timer
 static inline uint16_t wait_data_lo(uint16_t us) {
     do {
         if (!data_in()) break;
-        wait_us(1 - (6 * 1000000.0 / F_CPU));
+        wait_us(1);
     } while (--us);
     return us;
 }
@@ -296,7 +294,7 @@ static inline uint16_t wait_data_lo(uint16_t us) {
 static inline uint16_t wait_data_hi(uint16_t us) {
     do {
         if (data_in()) break;
-        wait_us(1 - (6 * 1000000.0 / F_CPU));
+        wait_us(1);
     } while (--us);
     return us;
 }

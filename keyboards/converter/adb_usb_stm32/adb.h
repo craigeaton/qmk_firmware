@@ -42,23 +42,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define __ADB_AVR__
 
-#ifdef __ADB_AVR__
-// AVR specific IRQ control
-#include <avr/interrupt.h>
-#define adb_irq_disable() cli()
-#define adb_irq_enable()  sei()
-
-#else
-// For  chibios targers
+// IRQ enable and disable for timing critical sections
 #include "chibios_config.h"
-#define abd_irq_disable() chSysLock()
-#define abd_irq_enable()  chSysUnlock()
-#endif
-
-
-#if !(defined(ADB_PORT) && defined(ADB_PIN) && defined(ADB_DDR) && defined(ADB_DATA_BIT))
-#    error "ADB port setting is required in config.h"
-#endif
+#define adb_irq_disable() chSysLock()
+#define adb_irq_enable()  chSysUnlock()
 
 #define ADB_POWER 0x7F
 #define ADB_CAPS 0x39

@@ -23,20 +23,5 @@ Ported to QMK by Peter Roe <pete@13bit.me>
 #define MATRIX_ROWS 16  // keycode bit: 3-0
 #define MATRIX_COLS 8   // keycode bit: 6-4
 
-#define __ADB_AVR__
-
-/* ADB port setting */
-#ifdef __ADB_AVR__
-
-// AVR specific stuff
-#define ADB_PORT        PORTD
-#define ADB_PIN         PIND
-#define ADB_DDR         DDRD
-#define ADB_DATA_BIT    0
-//#define ADB_PSW_BIT     1       // optional
-
-#else
-
-// STM32 options here
-
-#endif
+// GPIO pin to use as bidrectional ADB data, pick a 5V tolerant pin
+#define ADB_PIN     B1

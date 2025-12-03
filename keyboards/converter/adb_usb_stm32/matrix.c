@@ -20,7 +20,7 @@ Ported to QMK by Peter Roe <pete@13bit.me>
 #include <stdint.h>
 #include <stdbool.h>
 #include <wait.h>
-#include <avr/io.h>
+#include <gpio.h>
 #include "print.h"
 #include "util.h"
 #include "debug.h"
@@ -54,6 +54,7 @@ void matrix_scan_kb(void) {
 
 __attribute__ ((weak))
 void matrix_init_user(void) {
+    gpio_set_pin_output_open_drain(ADB_PIN);
 }
 
 __attribute__ ((weak))
