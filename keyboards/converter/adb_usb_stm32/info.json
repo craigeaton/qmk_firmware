@@ -3,14 +3,19 @@
   "manufacturer": "QMK",
   "maintainer": "qmk",
   "usb": {
-    "vid": "0xFEED",
-    "pid": "0x0ADB",
+    "vid": "0x0ADB",
+    "pid": "0x1ADB",
     "device_version": "1.0.1"
   },
   "features": {
     "bootmagic": false,
     "mousekey": false,
     "extrakey": true
+  },
+  "eeprom": {
+    "wear_leveling": {
+      "backing_size": 4096
+    }
   },
   "qmk": {
     "locking": {
